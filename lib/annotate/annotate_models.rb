@@ -43,10 +43,19 @@ module AnnotateModels
 
   class << self
     def annotate_pattern(options = {})
+      line = annotation_line_pattern(options)
       if options[:wrapper_open]
-        return /(?:^(\n|\r\n)?# (?:#{options[:wrapper_open]}).*(\n|\r\n)?# (?:#{COMPAT_PREFIX}|#{COMPAT_PREFIX_MD}).*?(\n|\r\n)(#.*(\n|\r\n))*(\n|\r\n)*)|^(\n|\r\n)?# (?:#{COMPAT_PREFIX}|#{COMPAT_PREFIX_MD}).*?(\n|\r\n)(#.*(\n|\r\n))*(\n|\r\n)*/
+        return /(?:^(\n|\r\n)?# (?:#{options[:wrapper_open]}).*(\n|\r\n)?# (?:#{COMPAT_PREFIX}|#{COMPAT_PREFIX_MD}).*?(\n|\r\n)(#{line})*(\n|\r\n)*)|^(\n|\r\n)?# (?:#{COMPAT_PREFIX}|#{COMPAT_PREFIX_MD}).*?(\n|\r\n)(#{line})*(\n|\r\n)*/
       end
-      /^(\n|\r\n)?# (?:#{COMPAT_PREFIX}|#{COMPAT_PREFIX_MD}).*?(\n|\r\n)(#.*(\n|\r\n))*(\n|\r\n)*/
+      /^(\n|\r\n)?# (?:#{COMPAT_PREFIX}|#{COMPAT_PREFIX_MD}).*?(\n|\r\n)(#{line})*(\n|\r\n)*/
+    end
+
+    # Matches only the comment lines annotate writes itself (in any format),
+    # so a comment placed directly below the block, such as a class comment,
+    # is not taken as part of the annotation.
+    def annotation_line_pattern(options = {})
+      wrapper_close = options[:wrapper_close] ? "| #{Regexp.escape(options[:wrapper_close])}" : ''
+      /#(?:[ \t]*|  .*| (?:Table name:|Schema version:|Indexes|Foreign Keys|Check Constraints|#+ |\*|@!attribute|Name +\||-+ +\||#{END_MARK}).*|--|\+\+#{wrapper_close})(?:\n|\r\n)/
     end
 
     def model_dir

@@ -2924,6 +2924,43 @@ describe AnnotateModels do
       end
     end
 
+    describe 'with existing annotation and a class comment directly below it' do
+      let(:class_comment) { "# Keeps the users of the app.\n# See the README for details.\n" }
+
+      before do
+        write_model 'user.rb', "#{@schema_info}#{class_comment}#{@file_content}"
+        @schema_info = AnnotateModels.get_schema_info(mock_class(:users, :id, [mock_column(:id, :integer)]), '== Schema Info')
+      end
+
+      it 'keeps the class comment when the annotation is updated' do
+        annotate_one_file
+        expect(File.read(@model_file_name)).to eq("#{@schema_info}#{class_comment}#{@file_content}")
+      end
+
+      it 'keeps the class comment when the annotation is forced' do
+        annotate_one_file force: true
+        expect(File.read(@model_file_name)).to eq("#{@schema_info}#{class_comment}#{@file_content}")
+      end
+
+      it 'keeps the class comment when the annotation is removed' do
+        AnnotateModels.remove_annotation_of_file(@model_file_name)
+        expect(File.read(@model_file_name)).to eq("#{class_comment}#{@file_content}")
+      end
+    end
+
+    describe 'with existing wrapped annotation' do
+      before do
+        annotate_one_file wrapper_open: 'START', wrapper_close: 'END'
+        @schema_info = AnnotateModels.get_schema_info(mock_class(:users, :id, [mock_column(:id, :integer)]), '== Schema Info')
+      end
+
+      it 'replaces the closing wrapper instead of adding a second one' do
+        annotate_one_file wrapper_open: 'START', wrapper_close: 'END'
+        expect(File.read(@model_file_name))
+          .to eq("# START\n#{@schema_info}# END\n#{@file_content}")
+      end
+    end
+
     describe 'with existing annotation => :before' do
       before do
         annotate_one_file position: :before
